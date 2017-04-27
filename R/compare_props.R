@@ -44,8 +44,8 @@ compare_props <- function(dataset, var1, var2,
 # data_filter = ""
 
 	vars <- c(var1, var2)
-	dat <- getdata(dataset, vars, filt = data_filter) %>% mutate_each(funs(as.factor))
-	if (!is_string(dataset)) dataset <- "-----"
+	dat <- getdata(dataset, vars, filt = data_filter) %>% mutate_all(funs(as.factor))
+	if (!is_string(dataset)) dataset <- deparse(substitute(dataset)) %>% set_attr("df", TRUE)
 
 	lv <- levels(dat[[var2]])
 	if (levs != "") {
@@ -55,8 +55,8 @@ compare_props <- function(dataset, var1, var2,
 		}
 	}
 
-  ## check there is variation in the data
-  if (any(summarise_each(dat, funs(does_vary)) == FALSE))
+  ## check if there is variation in the data
+  if (any(summarise_all(dat, funs(does_vary)) == FALSE))
   	return("One or more selected variables show no variation. Please select other variables." %>%
   	       add_class("compare_props"))
 
@@ -210,6 +210,7 @@ summary.compare_props <- function(object, show = FALSE, dec = 3, ...) {
 #' @param x Return value from \code{\link{compare_props}}
 #' @param plots One or more plots of proportions ("bar" or "dodge")
 #' @param shiny Did the function call originate inside a shiny app
+#' @param custom Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This opion can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org/} for options.
 #' @param ... further arguments passed to or from other methods
 #'
 #' @examples
@@ -223,6 +224,7 @@ summary.compare_props <- function(object, show = FALSE, dec = 3, ...) {
 plot.compare_props <- function(x,
                                plots = "bar",
                                shiny = FALSE,
+                               custom = FALSE,
                                ...) {
 
 	if (is.character(x)) return(x)
@@ -261,6 +263,9 @@ plot.compare_props <- function(x,
 			 		ylab(paste0("Proportions per level of ", v1))
 	}
 
-	sshhr( do.call(gridExtra::arrangeGrob, c(plot_list, list(ncol = 1))) ) %>%
- 	  { if (shiny) . else print(.) }
+	if (custom)
+    if (length(plot_list) == 1) return(plot_list[[1]]) else return(plot_list)
+
+	sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
+ 	  {if (shiny) . else print(.)}
 }

@@ -25,7 +25,7 @@ single_mean <- function(dataset, var,
                         data_filter = "") {
 
 	dat <- getdata(dataset, var, filt = data_filter, na.rm = FALSE)
-	if (!is_string(dataset)) dataset <- "-----"
+	if (!is_string(dataset)) dataset <- deparse(substitute(dataset)) %>% set_attr("df", TRUE)
 
   ## removing any missing values
 	miss <- n_missing(dat)
@@ -35,7 +35,7 @@ single_mean <- function(dataset, var,
 	              conf.level = conf_lev) %>% tidy
 
 	dat_summary <-
-	  dat %>% summarise_each(funs(diff = mean_rm(.) - comp_value, se = se(.), mean = mean_rm(.),
+	  dat %>% summarise_all(funs(diff = mean_rm(.) - comp_value, se = se(.), mean = mean_rm(.),
 	                         sd = sd_rm(.), n = length(na.omit(.))))
 	dat_summary$n_missing <- miss
 
@@ -175,6 +175,6 @@ plot.single_mean <- function(x,
   if (custom)
     if (length(plot_list) == 1) return(plot_list[[1]]) else return(plot_list)
 
-	sshhr( do.call(gridExtra::arrangeGrob, c(plot_list, list(ncol = 1))) ) %>%
-	  { if (shiny) . else print(.) }
+	sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
+	  {if (shiny) . else print(.)}
 }

@@ -27,9 +27,9 @@ correlation <- function(dataset, vars,
 	## system.time but results (using diamonds and mtcars) are identical
 	dat <- getdata(dataset, vars, filt = data_filter) %>%
 		select(which(!sapply(., class) %in% c("character", "factor"))) %>%
-		mutate_each(funs(as.numeric))
+		mutate_all(funs(as.numeric))
 
-	if (!is_string(dataset)) dataset <- "-----"
+	if (!is_string(dataset)) dataset <- deparse(substitute(dataset)) %>% set_attr("df", TRUE)
 
 	## using correlation_ to avoid print method conflict with nlme
   as.list(environment()) %>% add_class("correlation_")
@@ -67,13 +67,17 @@ summary.correlation_ <- function(object,
 
 	cmat <- sshhr( psych::corr.test(object$dat, method = object$method) )
 
-	cr <- format(round(cmat$r, dec))
+	cr <- apply(cmat$r, 2, formatnr, dec = dec) %>%
+		format(justify = "right") %>%
+	  set_rownames(rownames(cmat$r))
 	cr[is.na(cmat$r)] <- "-"
   cr[abs(cmat$r) < cutoff] <- ""
 	ltmat <- lower.tri(cr)
   cr[!ltmat] <- ""
 
-	cp <- format(round(cmat$p, dec))
+	cp <- apply(cmat$p, 2, formatnr, dec = dec) %>%
+		format(justify = "right") %>%
+		set_rownames(rownames(cmat$p))
 	cp[is.na(cmat$p)] <- "-"
   cp[abs(cmat$r) < cutoff] <- ""
   cp[!ltmat] <- ""
@@ -96,8 +100,10 @@ summary.correlation_ <- function(object,
   print(cp[-1,-ncol(cp), drop = FALSE], quote = FALSE)
 
 	if (covar) {
-	  cvmat <- sshhr( cov(object$dat, method = object$type) )
-		cvr <- format(round(cvmat, dec))
+	  cvmat <- sshhr( cov(object$dat, method = object$method) )
+		cvr <- apply(cvmat, 2, formatnr, dec = dec) %>%
+			format(justify = "right") %>%
+			set_rownames(rownames(cvmat))
 	  cvr[abs(cmat$r) < cutoff] <- ""
 		ltmat <- lower.tri(cvr)
 	  cvr[!ltmat] <- ""
@@ -114,6 +120,8 @@ summary.correlation_ <- function(object,
 #' @details See \url{https://radiant-rstats.github.io/docs/basics/correlation.html} for an example in Radiant
 #'
 #' @param x Return value from \code{\link{correlation}}
+#' @param n Number of datapoints to use in the plot (1000 is default). Use -1 for all observations
+#' @param jit Level of jittering to apply to scatter plot. Default is .3. Use 0 for no jittering
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @examples
@@ -124,8 +132,10 @@ summary.correlation_ <- function(object,
 #' @seealso \code{\link{correlation}} to calculate results
 #' @seealso \code{\link{summary.correlation_}} to summarize results
 #'
+#' @importFrom ggplot2 alpha
+#'
 #' @export
-plot.correlation_ <- function(x, ...) {
+plot.correlation_ <- function(x, n = 1000, jit = .3, ...) {
 
 	object <- x; rm(x)
 
@@ -134,7 +144,7 @@ plot.correlation_ <- function(x, ...) {
 	panel.plot <- function(x, y) {
 	    usr <- par("usr"); on.exit(par(usr))
 	    par(usr = c(0, 1, 0, 1))
-	    ct <- cor.test(x,y, method = object$type)
+	    ct <- sshhr(cor.test(x,y, method = object$method))
 	    sig <- symnum(ct$p.value, corr = FALSE, na = FALSE,
 	                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
 	                  symbols = c("***", "**", "*", ".", " "))
@@ -146,18 +156,18 @@ plot.correlation_ <- function(x, ...) {
 	    text(.8, .8, sig, cex = cex, col = "blue")
 	}
 	panel.smooth <- function(x, y) {
-    points(jitter(x,.3), jitter(y,.3), pch = 16, col = ggplot2::alpha("black", 0.5))
+		if(n > 0 & length(x) > n) {
+			ind <- sample(1:length(x), n)
+			x <- x[ind]
+			y <- y[ind]
+		}
+    points(jitter(x,jit), jitter(y,jit), pch = 16, 
+    	col = ggplot2::alpha("black", 0.5))
     ## uncomment the lines below if you want linear and loess lines
     ## in the scatter plot matrix
 		# abline(lm(y~x), col="red")
 		# lines(stats::lowess(y~x), col="blue")
 	}
-
-	# if (is.null(object$dat)) {
-	# 	object$dat <- select(object, which(!sapply(object, class) %in% c("character", "factor"))) %>%
-	# 	  mutate_each(funs(as.numeric))
-	# }
-	# pairs(object$dat, lower.panel = panel.smooth, upper.panel = panel.plot)
 
 	object$dat %>% {if (is.null(.)) object else . } %>%
 	  pairs(lower.panel = panel.smooth, upper.panel = panel.plot)

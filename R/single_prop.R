@@ -27,8 +27,8 @@ single_prop <- function(dataset, var,
                         conf_lev = .95,
                         data_filter = "") {
 
-	dat <- getdata(dataset, var, filt = data_filter, na.rm = FALSE) %>% mutate_each(funs(as.factor))
-	if (!is_string(dataset)) dataset <- "-----"
+	dat <- getdata(dataset, var, filt = data_filter, na.rm = FALSE) %>% mutate_all(funs(as.factor))
+	if (!is_string(dataset)) dataset <- deparse(substitute(dataset)) %>% set_attr("df", TRUE)
 
   ## removing any missing values
 	miss <- n_missing(dat)
@@ -159,13 +159,6 @@ plot.single_prop <- function(x,
  	plot_list <- list()
 	if ("bar" %in% plots) {
 		plot_list[[which("bar" == plots)]] <-
-			# ggplot(object$dat, aes_string(x = object$var, fill = object$var)) +
-	 	# 		geom_histogram(alpha = .7) +
-		 # 		scale_y_continuous(labels = percent) +
-	 	#  		ggtitle(paste0("Single proportion: ", lev_name, " in ", object$var)) +
-	 	#  		theme(legend.position = "none")
-
-
 			ggplot(object$dat, aes_string(x = object$var, fill = object$var)) +
 	 	 		geom_bar(aes(y = (..count..)/sum(..count..)), alpha = .7) +
 		 		scale_y_continuous(labels = scales::percent) +
@@ -202,6 +195,6 @@ plot.single_prop <- function(x,
   if (custom)
     if (length(plot_list) == 1) return(plot_list[[1]]) else return(plot_list)
 
-	sshhr( do.call(gridExtra::arrangeGrob, c(plot_list, list(ncol = 1))) ) %>%
-	  { if (shiny) . else print(.) }
+	sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
+	  {if (shiny) . else print(.)}
 }

@@ -4,14 +4,12 @@
 \alias{plot.prob_disc}
 \title{Plot method for the probability calculator function (discrete)}
 \usage{
-\method{plot}{prob_disc}(x, type = "values", shiny = FALSE, ...)
+\method{plot}{prob_disc}(x, type = "values", ...)
 }
 \arguments{
 \item{x}{Return value from \code{\link{prob_disc}}}
 
 \item{type}{Probabilities or values}
-
-\item{shiny}{Did the function call originate inside a shiny app}
 
 \item{...}{further arguments passed to or from other methods}
 }
@@ -26,4 +24,3 @@ result <- prob_disc(v = "5 6 7 8 9 10 11 ", p = ".1 .2 .3 .15 .1 .1 .05", pub = 
 plot(result, type = "probs")
 
 }
-

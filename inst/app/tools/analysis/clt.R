@@ -13,11 +13,6 @@ output$ui_clt <- renderUI({
       selectInput(inputId = "clt_dist", label = "Distribution:", choices = clt_dist,
         selected = state_single("clt_dist", clt_dist), multiple = FALSE),
       conditionalPanel(condition = "input.clt_dist == 'runif'",
-      #   with(tags, table(
-      #     td(numericInput("clt_unif_min", "Min:", value = state_init("clt_unif_min", 0))),
-      #     td(numericInput("clt_unif_max", "Max:", value = state_init("clt_unif_max", 1)))
-      #   ))
-      # ),
         div(class="row",
           div(class="col-xs-6",
             numericInput("clt_unif_min", "Min:", value = state_init("clt_unif_min", 0))
@@ -59,6 +54,9 @@ output$ui_clt <- renderUI({
             numericInput("clt_m", "# of samples:",  value = state_init("clt_m", 100), min = 2, step = 1)
           )
       ),
+      sliderInput("clt_bins", label = "Number of bins:",
+        min = 1, max = 50, value = state_init("clt_bins",15),
+        step = 1),
       radioButtons("clt_stat", label = NULL, choices = clt_stat, selected = state_init("clt_stat", "Sum"),
                    inline = TRUE)
     ),
@@ -119,9 +117,6 @@ output$clt <- renderUI({
   if(is.na(input$clt_binom_prob) || input$clt_binom_prob < 0.01)
     return("Please choose a probability between 0 and 1 for the binomial distribution.")
 
-  ## creating a dependency so a new set of draw is generated every time the button is pressed
-  # input$clt_resample
-
 	clt(input$clt_dist, input$clt_n, input$clt_m, input$clt_stat)
 })
 
@@ -142,8 +137,8 @@ clt <- function(clt_dist, clt_n, clt_m, clt_stat) {
 .plot_clt <- function(result = .clt()) {
 
   if (not_pressed(input$clt_resample)) return("** Press the Sample button to simulate data **")
-
-  if(result %>% is.character) return(result)
+  if(is.character(result)) return(result)
+  req(input$clt_bins)
 
   clt_stat <- input$clt_stat
   if (is.null(clt_stat)) return()
@@ -159,20 +154,20 @@ clt <- function(clt_dist, clt_n, clt_m, clt_stat) {
 
   plots <- list()
 
-  plots[[1]] <- visualize(data1, xvar = "sample_1", bins = 10, custom = TRUE) +
+  plots[[1]] <- visualize(data1, xvar = "sample_1", bins = input$clt_bins, custom = TRUE) +
                   xlab("Sample #1")
 
-  plots[[2]] <- visualize(datam, xvar = "sample_m", bins = 10, custom = TRUE) +
+  plots[[2]] <- visualize(datam, xvar = "sample_m", bins = input$clt_bins, custom = TRUE) +
                   xlab(paste0("Sample #", m))
 
-  plots[[3]] <- visualize(sstat, xvar = clt_stat, bins = 10, custom = TRUE)
+  plots[[3]] <- visualize(sstat, xvar = clt_stat, bins = input$clt_bins, custom = TRUE)
 
   plots[[4]] <- visualize(sstat, xvar = clt_stat, type = "density", custom = TRUE) +
                   stat_function(fun = dnorm, args = list(mean = mean(sstat[[1]]),
                                 sd = sd(sstat[[1]])), color = "black", size = 1)
 
   withProgress(message = 'Making plots', value = 1, {
-    do.call(gridExtra::arrangeGrob, c(plots, list(ncol = min(2,length(plots)))))
+    gridExtra::grid.arrange(grobs =  plots, ncol = min(2,length(plots)))
   })
 
 }
