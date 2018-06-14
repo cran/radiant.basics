@@ -22,9 +22,8 @@ Summary method for the cross_tabs function
 See \url{https://radiant-rstats.github.io/docs/basics/cross_tabs.html} for an example in Radiant
 }
 \examples{
-result <- cross_tabs("newspaper", "Income", "Newspaper")
-summary(result, check = c("observed","expected","chi_sq"))
-newspaper \%>\% cross_tabs("Income", "Newspaper") \%>\% summary("observed")
+result <- cross_tabs(newspaper, "Income", "Newspaper")
+summary(result, check = c("observed", "expected", "chi_sq"))
 
 }
 \seealso{

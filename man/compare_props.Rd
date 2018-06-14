@@ -2,13 +2,13 @@
 % Please edit documentation in R/compare_props.R
 \name{compare_props}
 \alias{compare_props}
-\title{Compare proportions across groups}
+\title{Compare sample proportions across groups}
 \usage{
 compare_props(dataset, var1, var2, levs = "", alternative = "two.sided",
   conf_lev = 0.95, comb = "", adjust = "none", data_filter = "")
 }
 \arguments{
-\item{dataset}{Dataset name (string). This can be a dataframe in the global environment or an element in an r_data list from Radiant}
+\item{dataset}{Dataset}
 
 \item{var1}{A grouping variable to split the data for comparisons}
 
@@ -30,14 +30,13 @@ compare_props(dataset, var1, var2, levs = "", alternative = "two.sided",
 A list of all variables defined in the function as an object of class compare_props
 }
 \description{
-Compare proportions across groups
+Compare sample proportions across groups
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/compare_props.html} for an example in Radiant
 }
 \examples{
-result <- compare_props("titanic", "pclass", "survived")
-result <- titanic \%>\% compare_props("pclass", "survived")
+compare_props(titanic, "pclass", "survived") \%>\% str()
 
 }
 \seealso{

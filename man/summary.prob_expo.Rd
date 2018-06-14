@@ -2,20 +2,25 @@
 % Please edit documentation in R/prob_calc.R
 \name{summary.prob_expo}
 \alias{summary.prob_expo}
-\title{Summary method for the probability calculator function (Exponential distribution)}
+\title{Summary method for the probability calculator (exponential)}
 \usage{
 \method{summary}{prob_expo}(object, type = "values", ...)
 }
 \arguments{
 \item{object}{Return value from \code{\link{prob_expo}}}
 
-\item{type}{Probabilities or values}
+\item{type}{Probabilities ("probs") or values ("values")}
 
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
-Summary method for the probability calculator function (Exponential distribution)
+Summary method for the probability calculator (exponential)
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an example in Radiant
+}
+\examples{
+result <- prob_expo(rate = 1, ub = 2.996)
+summary(result, type = "values")
+
 }

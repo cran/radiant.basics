@@ -14,7 +14,7 @@
 
 \item{shiny}{Did the function call originate inside a shiny app}
 
-\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This opion can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org/} for options.}
+\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org} for options.}
 
 \item{...}{further arguments passed to or from other methods}
 }
@@ -25,10 +25,10 @@ Plot method for the single_prop function
 See \url{https://radiant-rstats.github.io/docs/basics/single_prop.html} for an example in Radiant
 }
 \examples{
-result <- single_prop("diamonds","clarity", lev = "IF", comp_value = 0.05)
-plot(result, plots = c("hist", "simulate"))
-result <- single_prop("titanic","pclass", lev = "1st")
-plot(result, plots = c("hist","simulate"))
+result <- single_prop(diamonds,"clarity", lev = "IF", comp_value = 0.05)
+plot(result, plots = c("bar", "simulate"))
+result <- single_prop(titanic,"pclass", lev = "1st")
+plot(result, plots = c("bar","simulate"))
 
 }
 \seealso{

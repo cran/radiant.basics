@@ -20,9 +20,9 @@ Summary method for the single_mean function
 See \url{https://radiant-rstats.github.io/docs/basics/single_mean.html} for an example in Radiant
 }
 \examples{
-result <- single_mean("diamonds","price")
+result <- single_mean(diamonds, "price")
 summary(result)
-diamonds \%>\% single_mean("price") \%>\% summary
+diamonds \%>\% single_mean("price") \%>\% summary()
 
 }
 \seealso{

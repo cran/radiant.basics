@@ -4,14 +4,16 @@
 \alias{cross_tabs}
 \title{Evaluate associations between categorical variables}
 \usage{
-cross_tabs(dataset, var1, var2, data_filter = "")
+cross_tabs(dataset, var1, var2, tab = NULL, data_filter = "")
 }
 \arguments{
-\item{dataset}{Dataset name (string). This can be a dataframe in the global environment or an element in an r_data list from Radiant}
+\item{dataset}{Dataset (i.e., a data.frame or table)}
 
 \item{var1}{A categorical variable}
 
-\item{var2}{Another categorical variable}
+\item{var2}{A categorical variable}
+
+\item{tab}{Table with frequencies as alternative to dataset}
 
 \item{data_filter}{Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")}
 }
@@ -25,8 +27,8 @@ Evaluate associations between categorical variables
 See \url{https://radiant-rstats.github.io/docs/basics/cross_tabs.html} for an example in Radiant
 }
 \examples{
-result <- cross_tabs("newspaper", "Income", "Newspaper")
-result <- newspaper \%>\% cross_tabs("Income", "Newspaper")
+cross_tabs(newspaper, "Income", "Newspaper") \%>\% str()
+table(select(newspaper, Income, Newspaper)) \%>\% cross_tabs(tab = .)
 
 }
 \seealso{

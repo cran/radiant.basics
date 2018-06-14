@@ -2,18 +2,18 @@
 % Please edit documentation in R/compare_means.R
 \name{compare_means}
 \alias{compare_means}
-\title{Compare means for two or more variables}
+\title{Compare sample means}
 \usage{
 compare_means(dataset, var1, var2, samples = "independent",
   alternative = "two.sided", conf_lev = 0.95, comb = "",
   adjust = "none", test = "t", data_filter = "")
 }
 \arguments{
-\item{dataset}{Dataset name (string). This can be a dataframe in the global environment or an element in an r_data list from Radiant}
+\item{dataset}{Dataset}
 
 \item{var1}{A numeric variable or factor selected for comparison}
 
-\item{var2}{One or more numeric variables for comparison. If var1 is a factor only one variable can be selected and the mean of this variable is compared across (factor) levels of va1r}
+\item{var2}{One or more numeric variables for comparison. If var1 is a factor only one variable can be selected and the mean of this variable is compared across (factor) levels of var1}
 
 \item{samples}{Are samples independent ("independent") or not ("paired")}
 
@@ -33,14 +33,13 @@ compare_means(dataset, var1, var2, samples = "independent",
 A list of all variables defined in the function as an object of class compare_means
 }
 \description{
-Compare means for two or more variables
+Compare sample means
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/compare_means.html} for an example in Radiant
 }
 \examples{
-result <- compare_means("diamonds","cut","price")
-result <- diamonds \%>\% compare_means("cut","price")
+compare_means(diamonds, "cut", "price") \%>\% str()
 
 }
 \seealso{

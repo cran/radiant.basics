@@ -4,16 +4,19 @@
 \alias{plot.goodness}
 \title{Plot method for the goodness function}
 \usage{
-\method{plot}{goodness}(x, check = "", shiny = FALSE, custom = FALSE, ...)
+\method{plot}{goodness}(x, check = "", fillcol = "blue", shiny = FALSE,
+  custom = FALSE, ...)
 }
 \arguments{
 \item{x}{Return value from \code{\link{goodness}}}
 
 \item{check}{Show plots for variable var. "observed" for the observed frequencies table, "expected" for the expected frequencies table (i.e., frequencies that would be expected if the null hypothesis holds), "chi_sq" for the contribution to the overall chi-squared statistic for each cell (i.e., (o - e)^2 / e), and "dev_std" for the standardized differences between the observed and expected frequencies (i.e., (o - e) / sqrt(e))}
 
+\item{fillcol}{Color used for bar plots}
+
 \item{shiny}{Did the function call originate inside a shiny app}
 
-\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This opion can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org/} for options.}
+\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org} for options.}
 
 \item{...}{further arguments passed to or from other methods}
 }
@@ -24,9 +27,9 @@ Plot method for the goodness function
 See \url{https://radiant-rstats.github.io/docs/basics/goodness} for an example in Radiant
 }
 \examples{
-result <- goodness("newspaper", "Income")
-plot(result, check = c("observed","expected","chi_sq"))
-newspaper \%>\% goodness("Income") \%>\% plot(c("observed","expected"))
+result <- goodness(newspaper, "Income")
+plot(result, check = c("observed", "expected", "chi_sq"))
+goodness(newspaper, "Income") \%>\% plot(c("observed","expected"))
 
 }
 \seealso{

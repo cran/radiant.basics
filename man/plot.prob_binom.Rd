@@ -2,20 +2,25 @@
 % Please edit documentation in R/prob_calc.R
 \name{plot.prob_binom}
 \alias{plot.prob_binom}
-\title{Plot method for the probability calculator function (binomial)}
+\title{Plot method for the probability calculator (binomial)}
 \usage{
 \method{plot}{prob_binom}(x, type = "values", ...)
 }
 \arguments{
 \item{x}{Return value from \code{\link{prob_binom}}}
 
-\item{type}{Probabilities or values}
+\item{type}{Probabilities ("probs") or values ("values")}
 
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
-Plot method for the probability calculator function (binomial)
+Plot method for the probability calculator (binomial)
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an example in Radiant
+}
+\examples{
+result <- prob_binom(n = 10, p = 0.3, ub = 3)
+plot(result, type = "values")
+
 }

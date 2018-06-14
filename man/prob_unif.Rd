@@ -7,7 +7,7 @@
 prob_unif(min, max, lb = NA, ub = NA, plb = NA, pub = NA, dec = 3)
 }
 \arguments{
-\item{min}{Minmum value}
+\item{min}{Minimum value}
 
 \item{max}{Maximum value}
 
@@ -26,4 +26,8 @@ Probability calculator for the uniform distribution
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an example in Radiant
+}
+\examples{
+prob_unif(min = 0, max = 1, ub = 0.3)
+
 }

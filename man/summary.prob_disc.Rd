@@ -2,25 +2,25 @@
 % Please edit documentation in R/prob_calc.R
 \name{summary.prob_disc}
 \alias{summary.prob_disc}
-\title{Summary method for the probability calculator function (discrete)}
+\title{Summary method for the probability calculator (discrete)}
 \usage{
 \method{summary}{prob_disc}(object, type = "values", ...)
 }
 \arguments{
 \item{object}{Return value from \code{\link{prob_disc}}}
 
-\item{type}{Probabilities or values}
+\item{type}{Probabilities ("probs") or values ("values")}
 
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
-Summary method for the probability calculator function (discrete)
+Summary method for the probability calculator (discrete)
 }
 \details{
 See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an example in Radiant
 }
 \examples{
-result <- prob_disc(v = "5 6 7 8 9 10 11 ", p = ".1 .2 .3 .15 .1 .1 .05", pub = 0.95)
+result <- prob_disc(v = "5 6 7 8 9 10 11", p = ".1 .2 .3 .15 .1 .1 .05", pub = 0.95)
 summary(result, type = "probs")
 
 }
