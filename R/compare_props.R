@@ -29,7 +29,12 @@ compare_props <- function(
 
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
   vars <- c(var1, var2)
-  dataset <- get_data(dataset, vars, filt = data_filter) %>% mutate_all(funs(as.factor))
+  dataset <- get_data(dataset, vars, filt = data_filter) %>% mutate_all(as.factor)
+
+  if (length(levels(dataset[[var1]])) == nrow(dataset)) {
+    return("Test requires multiple observations in each group. Please select another variable." %>%
+      add_class("compare_props"))
+  }
 
   lv <- levels(dataset[[var2]])
   if (levs != "") {
@@ -40,7 +45,7 @@ compare_props <- function(
   }
 
   ## check if there is variation in the data
-  if (any(summarise_all(dataset, funs(does_vary)) == FALSE)) {
+  if (any(summarise_all(dataset, does_vary) == FALSE)) {
     return("One or more selected variables show no variation. Please select other variables." %>%
       add_class("compare_props"))
   }
@@ -103,7 +108,7 @@ compare_props <- function(
   res$sig_star <- sig_stars(res$p.value)
 
   ## from http://www.cookbook-r.com/Graphs/Plotting_props_and_error_bars_(ggplot2)/
-  ci_calc <- function(se, conf.lev = .95)
+  me_calc <- function(se, conf.lev = .95)
     se * qnorm(conf.lev / 2 + .5, lower.tail = TRUE)
 
   dat_summary <- data.frame(prop_input, check.names = FALSE, stringsAsFactors = FALSE) %>%
@@ -112,14 +117,14 @@ compare_props <- function(
       n = as.integer(rowSums(.[, 1:2])),
       p = .[[1]] / n,
       se = sqrt((p * (1 - p) / n)),
-      ci = ci_calc(se, conf_lev)
+      me = me_calc(se, conf_lev)
     ) %>%
       set_rownames(rownames(prop_input)) %>%
       rownames_to_column(var = var1)
 
   dat_summary[[var1]] %<>% factor(., levels = .)
-
   vars <- paste0(vars, collapse = ", ")
+  rm(i, me_calc)
   as.list(environment()) %>% add_class("compare_props")
 }
 
@@ -145,7 +150,7 @@ summary.compare_props <- function(object, show = FALSE, dec = 3, ...) {
 
   cat("Pairwise proportion comparisons\n")
   cat("Data      :", object$df_name, "\n")
-  if (object$data_filter %>% gsub("\\s", "", .) != "") {
+  if (!is_empty(object$data_filter)) {
     cat("Filter    :", gsub("\\n", "", object$data_filter), "\n")
   }
   cat("Variables :", object$vars, "\n")
@@ -181,15 +186,13 @@ summary.compare_props <- function(object, show = FALSE, dec = 3, ...) {
     res <- res[, c("Null hyp.", "Alt. hyp.", "diff", "p.value", "chisq.value", "df", "ci_low", "ci_high", "sig_star")]
     res[, c("chisq.value", "ci_low", "ci_high")] %<>% format_df(dec, mark = ",")
 
-    ## apparantely you can get negative number here
-    # res$ci_low[res$ci_low < 0] <- 0
     res$df[res_sim] <- "*1*"
-    res <- rename(res, !!! setNames(c("ci_low", "ci_high"), ci_perc)) %>%
-      rename(` ` = "sig_star")
+    res <- rename(res, !!! setNames(c("ci_low", "ci_high"), ci_perc))
   } else {
-    res <- res[, c("Null hyp.", "Alt. hyp.", "diff", "p.value")]
+    res <- res[, c("Null hyp.", "Alt. hyp.", "diff", "p.value", "sig_star")]
   }
 
+  res <- rename(res, ` ` = "sig_star")
   res$p.value[res$p.value >= .001] %<>% round(dec)
   res$p.value[res$p.value < .001] <- "< .001"
   res$p.value[res_sim] %<>% paste0(" (2000 replicates)")
@@ -232,7 +235,7 @@ plot.compare_props <- function(
     plot_list[[which("bar" == plots)]] <-
       ggplot(x$dat_summary, aes_string(x = v1, y = "p", fill = v1)) +
       geom_bar(stat = "identity", alpha = 0.5) +
-      geom_errorbar(width = .1, aes(ymin = p - ci, ymax = p + ci)) +
+      geom_errorbar(width = .1, aes(ymin = p - me, ymax = p + me)) +
       geom_errorbar(width = .05, aes(ymin = p - se, ymax = p + se), color = "blue") +
       theme(legend.position = "none") +
       scale_y_continuous(labels = scales::percent) +

@@ -42,6 +42,10 @@ compare_means <- function(
     cname <- " "
   } else {
     if (is.character(dataset[[var1]])) dataset[[var1]] <- as.factor(dataset[[var1]])
+    if (length(levels(dataset[[var1]])) == nrow(dataset)) {
+      return("Test requires multiple observations in each group. Please select another variable." %>%
+        add_class("compare_means"))
+    }
     colnames(dataset) <- c("variable", "values")
     cname <- var1
   }
@@ -50,7 +54,7 @@ compare_means <- function(
   dataset$variable %<>% as.factor()
 
   ## check there is variation in the data
-  if (any(summarise_all(dataset, funs(does_vary)) == FALSE)) {
+  if (any(summarise_all(dataset, does_vary) == FALSE)) {
     return("Test could not be calculated (no variation). Please select another variable." %>%
       add_class("compare_means"))
   }
@@ -124,23 +128,23 @@ compare_means <- function(
   res$sig_star <- sig_stars(res$p.value)
 
   ## from http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_(ggplot2)/
-  ci_calc <- function(se, n, conf.lev = .95)
+  me_calc <- function(se, n, conf.lev = .95)
     se * qt(conf.lev / 2 + .5, n - 1)
 
   dat_summary <- group_by_at(dataset, .vars = "variable") %>%
     summarise_all(
-      funs(
+      list( 
         mean = mean,
-        n = length(.),
-        sd,
-        se = sd / sqrt(n),
-        ci = ci_calc(se, n, conf_lev)
+        n = length,
+        sd = sd,
+        se = se,
+        me = ~ me_calc(se, n, conf_lev)
       )
     ) %>%
     rename(!!! setNames("variable", cname))
 
   vars <- paste0(vars, collapse = ", ")
-  rm(x, y, sel, i, ci_calc)
+  rm(x, y, sel, i, me_calc)
   as.list(environment()) %>% add_class("compare_means")
 }
 
@@ -166,7 +170,7 @@ summary.compare_means <- function(object, show = FALSE, dec = 3, ...) {
 
   cat(paste0("Pairwise mean comparisons (", object$test, "-test)\n"))
   cat("Data      :", object$df_name, "\n")
-  if (object$data_filter %>% gsub("\\s", "", .) != "") {
+  if (!is_empty(object$data_filter)) {
     cat("Filter    :", gsub("\\n", "", object$data_filter), "\n")
   }
   cat("Variables :", object$vars, "\n")
@@ -204,12 +208,12 @@ summary.compare_means <- function(object, show = FALSE, dec = 3, ...) {
     mod <- mod[, c("Null hyp.", "Alt. hyp.", "diff", "p.value", "se", "t.value", "df", "ci_low", "ci_high", "sig_star")]
     if (!is.integer(mod[["df"]])) mod[["df"]] %<>% round(dec)
     mod[, c("t.value", "ci_low", "ci_high")] %<>% round(dec)
-    mod <- rename(mod, !!! setNames(c("ci_low", "ci_high"), ci_perc)) %>%
-      rename(` ` = "sig_star")
+    mod <- rename(mod, !!! setNames(c("ci_low", "ci_high"), ci_perc))
   } else {
-    mod <- mod[, c("Null hyp.", "Alt. hyp.", "diff", "p.value")]
+    mod <- mod[, c("Null hyp.", "Alt. hyp.", "diff", "p.value", "sig_star")]
   }
 
+  mod <- rename(mod, ` ` = "sig_star")
   mod$p.value <- round(mod$p.value, dec)
   mod$p.value[mod$p.value < .001] <- "< .001"
   print(mod, row.names = FALSE, right = FALSE)
@@ -260,7 +264,7 @@ plot.compare_means <- function(x, plots = "scatter", shiny = FALSE, custom = FAL
         aes_string(x = "variable", y = "mean", fill = "variable")
       ) +
       geom_bar(stat = "identity") +
-      geom_errorbar(width = .1, aes(ymin = mean - ci, ymax = mean + ci)) +
+      geom_errorbar(width = .1, aes(ymin = mean - me, ymax = mean + me)) +
       geom_errorbar(width = .05, aes(ymin = mean - se, ymax = mean + se), color = "blue") +
       theme(legend.position = "none") +
       labs(x = var1, y = paste0(var2, " (mean)"))

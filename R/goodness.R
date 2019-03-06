@@ -36,7 +36,7 @@ goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
   ## dataset not needed in summary or plot
   rm(dataset)
 
-  if (is_not(p) || p == "") {
+  if (is_empty(p)) {
     p <- rep(1 / length(tab), length(tab))
   } else if (is.character(p)) {
     p <- gsub(",", " ", p) %>% strsplit("\\s+") %>% unlist() %>% strsplit("/")
@@ -99,7 +99,7 @@ summary.goodness <- function(object, check = "", dec = 2, ...) {
 
   cat("Goodness of fit test\n")
   cat("Data     :", object$df_name, "\n")
-  if (object$data_filter %>% gsub("\\s", "", .) != "") {
+  if (!is_empty(object$data_filter)) {
     cat("Filter   :", gsub("\\n", "", object$data_filter), "\n")
   }
   if (length(object$var) > 0) {

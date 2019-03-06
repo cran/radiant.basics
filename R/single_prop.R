@@ -8,6 +8,7 @@
 #' @param comp_value Population value to compare to the sample proportion
 #' @param alternative The alternative hypothesis ("two.sided", "greater", or "less")
 #' @param conf_lev Span of the confidence interval
+#' @param test bionomial exact test ("binom") or Z-test ("z")
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
 #'
 #' @return A list of variables used in single_prop as an object of class single_prop
@@ -23,12 +24,12 @@
 single_prop <- function(
   dataset, var, lev = "", comp_value = 0.5,
   alternative = "two.sided", conf_lev = .95,
-  data_filter = ""
+  test = "binom", data_filter = ""
 ) {
 
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
   dataset <- get_data(dataset, var, filt = data_filter, na.rm = FALSE) %>%
-    mutate_all(funs(as.factor))
+    mutate_all(as.factor)
 
   ## removing any missing values
   miss <- n_missing(dataset)
@@ -58,12 +59,23 @@ single_prop <- function(
     stringsAsFactors = FALSE
   )
 
-  ## use binom.test for exact
-  res <- binom.test(
-    ns, n, p = comp_value, alternative = alternative,
-    conf.level = conf_lev
-  ) %>%
-    tidy()
+  if (test == "z") {
+    ## use z-test
+    res <- sshhr(prop.test(
+      ns, n, p = comp_value, alternative = alternative,
+      conf.level = conf_lev, correct = FALSE
+    )) %>%
+      tidy()
+    ## convert chi-square stat to a z-score
+    res$statistic <- sqrt(res$statistic) * ifelse(res$estimate < comp_value, -1, 1)
+  } else {
+    ## use binom.test for exact
+    res <- binom.test(
+      ns, n, p = comp_value, alternative = alternative,
+      conf.level = conf_lev
+    ) %>%
+      tidy()
+  }
 
   as.list(environment()) %>% add_class("single_prop")
 }
@@ -86,9 +98,13 @@ single_prop <- function(
 #' @export
 summary.single_prop <- function(object, dec = 3, ...) {
 
-  cat("Single proportion test (binomial exact)\n")
+  if (object$test == "z") {
+    cat("Single proportion test (z-test)\n")
+  } else {
+    cat("Single proportion test (binomial exact)\n")
+  }
   cat("Data      :", object$df_name, "\n")
-  if (object$data_filter %>% gsub("\\s", "", .) != "") {
+  if (!is_empty(object$data_filter)) {
     cat("Filter    :", gsub("\\n", "", object$data_filter), "\n")
   }
   cat("Variable  :", object$var, "\n")
@@ -118,9 +134,13 @@ summary.single_prop <- function(object, dec = 3, ...) {
   res <- bind_cols(data.frame(diff = object$dat_summary[["diff"]]), res[, -1]) %>%
     select(base::setdiff(colnames(.), c("parameter", "method", "alternative")))
 
-  names(res) <- c("diff", "ns", "p.value", ci_perc[1], ci_perc[2])
-  res <- format_df(mutate(res, ns = as.integer(res$ns)), dec = dec, mark = ",") # restrict the number of decimals
-
+  if (object$test == "z") {
+    names(res) <- c("diff", "z.value", "p.value", ci_perc[1], ci_perc[2])
+    res <- format_df(res, dec = dec, mark = ",") # restrict the number of decimals
+  } else {
+    names(res) <- c("diff", "ns", "p.value", ci_perc[1], ci_perc[2])
+    res <- format_df(mutate(res, ns = as.integer(res$ns)), dec = dec, mark = ",") # restrict the number of decimals
+  }
   res$` ` <- sig_stars(res$p.value)
   if (res$p.value < .001) res$p.value <- "< .001"
 
