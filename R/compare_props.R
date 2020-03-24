@@ -11,6 +11,7 @@
 #' @param comb Combinations to evaluate
 #' @param adjust Adjustment for multiple comparisons ("none" or "bonf" for Bonferroni)
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of all variables defined in the function as an object of class compare_props
 #'
@@ -24,12 +25,20 @@
 compare_props <- function(
   dataset, var1, var2, levs = "",
   alternative = "two.sided", conf_lev = .95,
-  comb = "", adjust = "none", data_filter = ""
+  comb = "", adjust = "none", data_filter = "",
+  envir = parent.frame()
 ) {
 
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
   vars <- c(var1, var2)
-  dataset <- get_data(dataset, vars, filt = data_filter) %>% mutate_all(as.factor)
+  dataset <- get_data(dataset, vars, filt = data_filter, na.rm = FALSE, envir = envir) %>%
+    mutate_all(as.factor)
+
+  dataset <- dataset[!is.na(dataset[[1]]), , drop = FALSE]
+  n_miss_df <- group_by_at(dataset, var1) %>%
+    summarise_at(n_missing, .vars = var2) %>%
+    set_colnames(c(var1, "n_miss"))
+  dataset <- na.omit(dataset)
 
   if (length(levels(dataset[[var1]])) == nrow(dataset)) {
     return("Test requires multiple observations in each group. Please select another variable." %>%
@@ -45,9 +54,10 @@ compare_props <- function(
   }
 
   ## check if there is variation in the data
-  if (any(summarise_all(dataset, does_vary) == FALSE)) {
-    return("One or more selected variables show no variation. Please select other variables." %>%
-      add_class("compare_props"))
+  not_vary <- colnames(dataset)[summarise_all(dataset, does_vary) == FALSE]
+  if (length(not_vary) > 0) {
+    return(paste0("The following variable(s) show no variation. Please select other variables.\n\n** ", paste0(not_vary, collapse = ", "), " **") %>%
+             add_class("compare_props"))
   }
 
   rn <- ""
@@ -114,17 +124,22 @@ compare_props <- function(
   dat_summary <- data.frame(prop_input, check.names = FALSE, stringsAsFactors = FALSE) %>%
     mutate_if(is.numeric, as.integer) %>%
     mutate(
+      p = .[[1]] / as.integer(rowSums(.[, 1:2])),
       n = as.integer(rowSums(.[, 1:2])),
-      p = .[[1]] / n,
-      se = sqrt((p * (1 - p) / n)),
+      n_missing = 0,
+      sd = sqrt(p * (1 - p)),
+      se = sqrt(p * (1 - p) / n),
       me = me_calc(se, conf_lev)
     ) %>%
       set_rownames(rownames(prop_input)) %>%
       rownames_to_column(var = var1)
 
   dat_summary[[var1]] %<>% factor(., levels = .)
+  dat_summary <- suppressWarnings(left_join(dat_summary, n_miss_df, by = var1)) %>%
+    mutate(n_missing = n_miss) %>%
+    select(-n_miss)
   vars <- paste0(vars, collapse = ", ")
-  rm(i, me_calc)
+  rm(i, me_calc, envir)
   as.list(environment()) %>% add_class("compare_props")
 }
 
@@ -253,14 +268,12 @@ plot.compare_props <- function(
       labs(y = paste0("Proportions per level of ", v1))
   }
 
-  if (custom) {
-    if (length(plot_list) == 1) {
-      return(plot_list[[1]])
+  if (length(plot_list) > 0) {
+    if (custom) {
+      if (length(plot_list) == 1) plot_list[[1]] else plot_list
     } else {
-      return(plot_list)
+      patchwork::wrap_plots(plot_list, ncol = 1) %>%
+        {if (shiny) . else print(.)}
     }
   }
-
-  sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
-    {if (shiny) . else print(.)}
 }

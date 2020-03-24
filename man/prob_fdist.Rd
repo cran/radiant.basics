@@ -4,8 +4,7 @@
 \alias{prob_fdist}
 \title{Probability calculator for the F-distribution}
 \usage{
-prob_fdist(df1, df2, lb = NA, ub = NA, plb = NA, pub = NA,
-  dec = 3)
+prob_fdist(df1, df2, lb = NA, ub = NA, plb = NA, pub = NA, dec = 3)
 }
 \arguments{
 \item{df1}{Degrees of freedom}
@@ -31,4 +30,9 @@ See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an exa
 \examples{
 prob_fdist(df1 = 10, df2 = 10, ub = 2.978)
 
+}
+\seealso{
+\code{\link{summary.prob_fdist}} to summarize results
+
+\code{\link{plot.prob_fdist}} to plot results
 }

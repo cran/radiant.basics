@@ -10,6 +10,7 @@
 #' @param conf_lev Span of the confidence interval
 #' @param test bionomial exact test ("binom") or Z-test ("z")
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of variables used in single_prop as an object of class single_prop
 #'
@@ -24,15 +25,16 @@
 single_prop <- function(
   dataset, var, lev = "", comp_value = 0.5,
   alternative = "two.sided", conf_lev = .95,
-  test = "binom", data_filter = ""
+  test = "binom", data_filter = "",
+  envir = parent.frame()
 ) {
 
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-  dataset <- get_data(dataset, var, filt = data_filter, na.rm = FALSE) %>%
+  dataset <- get_data(dataset, var, filt = data_filter, na.rm = FALSE, envir = envir) %>%
     mutate_all(as.factor)
 
   ## removing any missing values
-  miss <- n_missing(dataset)
+  n_miss <- n_missing(dataset)
   dataset <- na.omit(dataset)
 
   levs <- levels(dataset[[var]])
@@ -51,12 +53,15 @@ single_prop <- function(
 
   dat_summary <- data.frame(
     diff = p - comp_value,
-    prop = p,
-    mean = ns, ## or mean = n * p,
-    sd = sqrt(n * p * (1 - p)),
+    p = p,
+    ns = ns,
     n = n,
-    n_missing = miss,
+    n_missing = n_miss,
     stringsAsFactors = FALSE
+  ) %>% mutate(
+    sd = sqrt(p * (1 - p)),
+    se = sqrt(p * (1 - p) / n),
+    me = se * qnorm(conf_lev / 2 + .5, lower.tail = TRUE)
   )
 
   if (test == "z") {
@@ -64,8 +69,8 @@ single_prop <- function(
     res <- sshhr(prop.test(
       ns, n, p = comp_value, alternative = alternative,
       conf.level = conf_lev, correct = FALSE
-    )) %>%
-      tidy()
+    ))
+    res <- tidy(res)
     ## convert chi-square stat to a z-score
     res$statistic <- sqrt(res$statistic) * ifelse(res$estimate < comp_value, -1, 1)
   } else {
@@ -73,9 +78,12 @@ single_prop <- function(
     res <- binom.test(
       ns, n, p = comp_value, alternative = alternative,
       conf.level = conf_lev
-    ) %>%
-      tidy()
+    )
+    res <- tidy(res)
   }
+
+  # removing unneeded arguments
+  rm(envir)
 
   as.list(environment()) %>% add_class("single_prop")
 }
@@ -145,7 +153,7 @@ summary.single_prop <- function(object, dec = 3, ...) {
   if (res$p.value < .001) res$p.value <- "< .001"
 
   ## print statistics
-  print(res, row.names = FALSE)
+  print(as.data.frame(res, stringsAsFactors = FALSE), row.names = FALSE)
   cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
 }
 
@@ -224,15 +232,12 @@ plot.single_prop <- function(
       )
   }
 
-  if (custom) {
-    if (length(plot_list) == 1) {
-      return(plot_list[[1]])
+  if (length(plot_list) > 0) {
+    if (custom) {
+      if (length(plot_list) == 1) plot_list[[1]] else plot_list
     } else {
-      return(plot_list)
+      patchwork::wrap_plots(plot_list, ncol = 1) %>%
+        {if (shiny) . else print(.)}
     }
-  }
-
-  sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>% {
-    if (shiny) . else print(.)
   }
 }

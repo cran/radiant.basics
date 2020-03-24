@@ -7,6 +7,7 @@
 #' @param var2 A categorical variable
 #' @param tab Table with frequencies as alternative to dataset
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of all variables used in cross_tabs as an object of class cross_tabs
 #'
@@ -18,7 +19,10 @@
 #' @seealso \code{\link{plot.cross_tabs}} to plot results
 #'
 #' @export
-cross_tabs <- function(dataset, var1, var2, tab = NULL, data_filter = "") {
+cross_tabs <- function(
+  dataset, var1, var2,  tab = NULL,
+  data_filter = "", envir = parent.frame()
+) {
 
   if (is.table(tab)) {
     df_name <- deparse(substitute(tab))
@@ -35,16 +39,17 @@ cross_tabs <- function(dataset, var1, var2, tab = NULL, data_filter = "") {
     }
   } else {
     df_name <- if (!is_string(dataset)) deparse(substitute(dataset)) else dataset
-    dataset <- get_data(dataset, c(var1, var2), filt = data_filter)
+    dataset <- get_data(dataset, c(var1, var2), filt = data_filter, envir = envir)
 
     ## Use simulated p-values when
     # http://stats.stackexchange.com/questions/100976/n-1-pearsons-chi-square-in-r
     # http://stats.stackexchange.com/questions/14226/given-the-power-of-computers-these-days-is-there-ever-a-reason-to-do-a-chi-squa/14230#14230
     # http://stats.stackexchange.com/questions/62445/rules-to-apply-monte-carlo-simulation-of-p-values-for-chi-squared-test
 
-    if (any(summarise_all(dataset, does_vary) == FALSE)) {
-      return("One or more selected variables show no variation. Please select other variables." %>%
-        add_class("cross_tabs"))
+    not_vary <- colnames(dataset)[summarise_all(dataset, does_vary) == FALSE]
+    if (length(not_vary) > 0) {
+      return(paste0("The following variable(s) show no variation. Please select other variables.\n\n** ", paste0(not_vary, collapse = ", "), " **") %>%
+               add_class("cross_tabs"))
     }
 
     tab <- table(dataset[[var1]], dataset[[var2]])
@@ -69,6 +74,8 @@ cross_tabs <- function(dataset, var1, var2, tab = NULL, data_filter = "") {
     res$p.value <- chisq.test(cst$observed, simulate.p.value = TRUE, B = 2000) %>% tidy() %>% .$p.value
     res$parameter <- paste0("*", res$parameter, "*")
   }
+
+  rm(envir)
 
   as.list(environment()) %>% add_class("cross_tabs")
 }
@@ -107,79 +114,93 @@ summary.cross_tabs <- function(object, check = "", dec = 2, ...) {
 
   if ("observed" %in% check) {
     cat("\nObserved:\n")
-    object$cst$observed %>%
+    observed <- object$cst$observed %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
-      format(big.mark = ",", scientific = FALSE) %>%
-      print(quote = FALSE)
+      format(big.mark = ",", scientific = FALSE)
+
+   names(attributes(observed)$dimnames) <- c(object$var1, object$var2)
+   print(observed, quote = FALSE)
   }
 
   if ("expected" %in% check) {
     cat("\nExpected: (row total x column total) / total\n")
-    object$cst$expected %>%
+    expected <- object$cst$expected %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
       round(dec) %>%
-      format(big.mark = ",", scientific = FALSE) %>%
-      print(quote = FALSE)
+      format(big.mark = ",", scientific = FALSE)
+
+   names(attributes(expected)$dimnames) <- c(object$var1, object$var2)
+   print(expected, quote = FALSE)
   }
 
   if ("chi_sq" %in% check) {
     cat("\nContribution to chi-squared: (o - e)^2 / e\n")
-    object$cst$chi_sq %>%
+    chi_sq <- object$cst$chi_sq %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
       round(dec) %>%
-      format(big.mark = ",", scientific = FALSE) %>%
-      print(quote = FALSE)
+      format(big.mark = ",", scientific = FALSE)
+
+   names(attributes(chi_sq)$dimnames) <- c(object$var1, object$var2)
+   print(chi_sq, quote = FALSE)
   }
 
   if ("dev_std" %in% check) {
     cat("\nDeviation standardized: (o - e) / sqrt(e)\n")
-    print(round(object$cst$residuals, dec)) ## standardized residuals
+   resid <- round(object$cst$residuals, dec) ## standardized residuals
+   names(attributes(resid)$dimnames) <- c(object$var1, object$var2)
+   print(resid)
   }
 
   if ("row_perc" %in% check) {
     cat("\nRow percentages:\n")
-    object$cst$observed %>%
+    row_perc <- object$cst$observed %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
       {. / .[, "Total"]} %>%
-      round(dec) %>%
-      print()
+      round(dec)
+
+   names(attributes(row_perc)$dimnames) <- c(object$var1, object$var2)
+   print(row_perc)
   }
 
   if ("col_perc" %in% check) {
     cat("\nColumn percentages:\n")
-    object$cst$observed %>%
+    col_perc <- object$cst$observed %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
       {t(.) / .["Total", ]} %>%
       t() %>%
-      round(dec) %>%
-      print()
+      round(dec)
+
+   names(attributes(col_perc)$dimnames) <- c(object$var1, object$var2)
+   print(col_perc)
   }
 
   if ("perc" %in% check) {
     cat("\nProbability table:\n")
-    object$cst$observed %>%
+    perc <- object$cst$observed %>%
       rbind(colSums(.)) %>%
       set_rownames(rnames) %>%
       cbind(rowSums(.)) %>%
       set_colnames(cnames) %>%
       {. / .["Total", "Total"]} %>%
-      round(dec) %>%
-      print()
+      round(dec)
+
+    names(attributes(perc)$dimnames) <- c(object$var1, object$var2)
+    print(perc)
   }
 
   object$res <- format_df(object$res, dec = dec + 1, mark = ",")
@@ -331,14 +352,12 @@ plot.cross_tabs <- function(x, check = "", shiny = FALSE, custom = FALSE, ...) {
       )
   }
 
-  if (custom) {
-    if (length(plot_list) == 1) {
-      return(plot_list[[1]])
+  if (length(plot_list) > 0) {
+    if (custom) {
+      if (length(plot_list) == 1) plot_list[[1]] else plot_list
     } else {
-      return(plot_list)
+      patchwork::wrap_plots(plot_list, ncol = 1) %>%
+        {if (shiny) . else print(.)}
     }
   }
-
-  sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
-    {if (shiny) . else print(.)}
 }

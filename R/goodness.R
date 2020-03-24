@@ -7,25 +7,30 @@
 #' @param p Hypothesized distribution as a number, fraction, or numeric vector. If unspecified, defaults to an even distribution
 #' @param tab Table with frequencies as alternative to dataset
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of all variables used in goodness as an object of class goodness
 #'
 #' @examples
 #' goodness(newspaper, "Income") %>% str()
+#' goodness(newspaper, "Income", p = c(3/4, 1/4)) %>% str()
 #' table(select(newspaper, Income)) %>% goodness(tab = .)
 #'
 #' @seealso \code{\link{summary.goodness}} to summarize results
 #' @seealso \code{\link{plot.goodness}} to plot results
 #'
 #' @export
-goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
+goodness <- function(
+  dataset, var, p = NULL, tab = NULL,
+  data_filter = "", envir = parent.frame()
+) {
 
   if (is.table(tab)) {
     df_name <- deparse(substitute(tab))
     if (missing(var)) var <- "variable"
   } else {
     df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-    dataset <- get_data(dataset, var, filt = data_filter)
+    dataset <- get_data(dataset, var, filt = data_filter, envir = envir)
 
     ## creating and cleaning up the table
     tab <- table(dataset[[var]])
@@ -38,6 +43,8 @@ goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
 
   if (is_empty(p)) {
     p <- rep(1 / length(tab), length(tab))
+  } else if (is.numeric(p)) {
+    if (length(p) == 1) p <- rep(p, length(tab))
   } else if (is.character(p)) {
     p <- gsub(",", " ", p) %>% strsplit("\\s+") %>% unlist() %>% strsplit("/")
     asNum <- function(x) ifelse(length(x) > 1, as.numeric(x[1]) / as.numeric(x[2]), as.numeric(x[1]))
@@ -51,12 +58,13 @@ goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
     lt <- length(tab)
     if (lt != lp && lt %% lp == 0) p <- rep(p, lt / lp)
 
-    if (!is.numeric(p) || sum(p) != 1) {
-      return(
-        paste0("Probabilities do not sum to 1 (", round(sum(p), 3), ")\nUse fractions if appropriate. Variable ", var, " has ", length(tab), " unique values.") %>%
-          add_class("goodness")
-      )
-    }
+  }
+
+  if (!is.numeric(p) || sum(p) != 1) {
+    return(
+      paste0("Probabilities do not sum to 1 (", round(sum(p), 3), ")\nUse fractions if appropriate. Variable ", var, " has ", length(tab), " unique values.") %>%
+        add_class("goodness")
+    )
   }
 
   cst <- sshhr(chisq.test(tab, p = p, correct = FALSE))
@@ -73,6 +81,8 @@ goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
     res$parameter <- paste0("*", res$parameter, "*")
   }
 
+  rm(envir)
+
   as.list(environment()) %>% add_class("goodness")
 }
 
@@ -88,7 +98,7 @@ goodness <- function(dataset, var, p = NULL, tab = NULL, data_filter = "") {
 #' @examples
 #' result <- goodness(newspaper, "Income", c(.3, .7))
 #' summary(result, check = c("observed", "expected", "chi_sq"))
-#' goodness(newspaper, "Income", "1/3 2/3") %>% summary("observed")
+#' goodness(newspaper, "Income", c(1/3, 2/3)) %>% summary("observed")
 #'
 #' @seealso \code{\link{goodness}} to calculate results
 #' @seealso \code{\link{plot.goodness}} to plot results
@@ -243,15 +253,12 @@ plot.goodness <- function(
       )
   }
 
-  if (custom) {
-    if (length(plot_list) == 1) {
-      return(plot_list[[1]])
+  if (length(plot_list) > 0) {
+    if (custom) {
+      if (length(plot_list) == 1) plot_list[[1]] else plot_list
     } else {
-      return(plot_list)
+      patchwork::wrap_plots(plot_list, ncol = 1) %>%
+        {if (shiny) . else print(.)}
     }
-  }
-
-  sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>% {
-    if (shiny) . else print(.)
   }
 }

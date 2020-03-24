@@ -4,8 +4,7 @@
 \alias{prob_unif}
 \title{Probability calculator for the uniform distribution}
 \usage{
-prob_unif(min, max, lb = NA, ub = NA, plb = NA, pub = NA,
-  dec = 3)
+prob_unif(min, max, lb = NA, ub = NA, plb = NA, pub = NA, dec = 3)
 }
 \arguments{
 \item{min}{Minimum value}
@@ -31,4 +30,9 @@ See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an exa
 \examples{
 prob_unif(min = 0, max = 1, ub = 0.3)
 
+}
+\seealso{
+\code{\link{summary.prob_unif}} to summarize results
+
+\code{\link{plot.prob_unif}} to plot results
 }

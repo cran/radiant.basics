@@ -12,6 +12,7 @@
 #' @param adjust Adjustment for multiple comparisons ("none" or "bonf" for Bonferroni)
 #' @param test t-test ("t") or Wilcox ("wilcox")
 #' @param data_filter Expression entered in, e.g., Data > View to filter the dataset in Radiant. The expression should be a string (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of all variables defined in the function as an object of class compare_means
 #'
@@ -26,12 +27,12 @@ compare_means <- function(
   dataset, var1, var2, samples = "independent",
   alternative = "two.sided", conf_lev = .95,
   comb = "", adjust = "none", test = "t",
-  data_filter = ""
+  data_filter = "", envir = parent.frame()
 ) {
 
   vars <- c(var1, var2)
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-  dataset <- get_data(dataset, vars, filt = data_filter)
+  dataset <- get_data(dataset, vars, filt = data_filter, na.rm = FALSE, envir = envir)
 
   ## in case : was used for var2
   vars <- colnames(dataset)
@@ -53,10 +54,10 @@ compare_means <- function(
   ## needed with new tidyr
   dataset$variable %<>% as.factor()
 
-  ## check there is variation in the data
-  if (any(summarise_all(dataset, does_vary) == FALSE)) {
-    return("Test could not be calculated (no variation). Please select another variable." %>%
-      add_class("compare_means"))
+  not_vary <- vars[summarise_all(dataset, does_vary) == FALSE]
+  if (length(not_vary) > 0) {
+    return(paste0("The following variable(s) show no variation. Please select other variables.\n\n** ", paste0(not_vary, collapse = ", "), " **") %>%
+             add_class("compare_means"))
   }
 
   ## resetting option to independent if the number of observations is unequal
@@ -133,18 +134,19 @@ compare_means <- function(
 
   dat_summary <- group_by_at(dataset, .vars = "variable") %>%
     summarise_all(
-      list( 
-        mean = mean,
+      list(
+        mean = ~ mean(., na.rm = TRUE),
         n = length,
-        sd = sd,
-        se = se,
+        n_missing = n_missing,
+        sd = ~ sd(., na.rm = TRUE),
+        se = ~ se(., na.rm = TRUE),
         me = ~ me_calc(se, n, conf_lev)
       )
     ) %>%
     rename(!!! setNames("variable", cname))
 
   vars <- paste0(vars, collapse = ", ")
-  rm(x, y, sel, i, me_calc)
+  rm(x, y, sel, i, me_calc, envir)
   as.list(environment()) %>% add_class("compare_means")
 }
 
@@ -178,7 +180,6 @@ summary.compare_means <- function(object, show = FALSE, dec = 3, ...) {
   cat("Confidence:", object$conf_lev, "\n")
   cat("Adjustment:", if (object$adjust == "bonf") "Bonferroni" else "None", "\n\n")
 
-  # object$dat_summary[, -1] %<>% round(dec)
   object$dat_summary %>%
     as.data.frame(stringsAsFactors = FALSE) %>%
     format_df(dec = dec, mark = ",") %>%
@@ -245,7 +246,7 @@ plot.compare_means <- function(x, plots = "scatter", shiny = FALSE, custom = FAL
   v2 <- cn[-1]
 
   ## cname is equal to " " when the xvar is numeric
-  if (x$cname == " ") {
+  if (is_empty(x$cname)) {
     var1 <- v1
     var2 <- v2
   } else {
@@ -291,14 +292,12 @@ plot.compare_means <- function(x, plots = "scatter", shiny = FALSE, custom = FAL
       labs(x = var1, y = paste0(var2, " (mean)"))
   }
 
-  if (custom) {
-    if (length(plot_list) == 1) {
-      return(plot_list[[1]])
+  if (length(plot_list) > 0) {
+    if (custom) {
+      if (length(plot_list) == 1) plot_list[[1]] else plot_list
     } else {
-      return(plot_list)
+      patchwork::wrap_plots(plot_list, ncol = 1) %>%
+        {if (shiny) . else print(.)}
     }
   }
-
-  sshhr(gridExtra::grid.arrange(grobs = plot_list, ncol = 1)) %>%
-    {if (shiny) . else print(.)}
 }

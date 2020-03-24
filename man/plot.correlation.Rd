@@ -4,15 +4,14 @@
 \alias{plot.correlation}
 \title{Plot method for the correlation function}
 \usage{
-\method{plot}{correlation}(x, nrobs = -1, jit = c(0, 0), dec = 2,
-  ...)
+\method{plot}{correlation}(x, nrobs = -1, jit = c(0, 0), dec = 2, ...)
 }
 \arguments{
 \item{x}{Return value from \code{\link{correlation}}}
 
 \item{nrobs}{Number of data points to show in scatter plots (-1 for all)}
 
-\item{jit}{A numeric vector that determines the amount of jittering to apply to scatter plot. Default is 0. Use, e.g., 0.3 to add some jittering}
+\item{jit}{A numeric vector that determines the amount of jittering to apply to the x and y variables in a scatter plot. Default is 0. Use, e.g., 0.3 to add some jittering}
 
 \item{dec}{Number of decimals to show}
 

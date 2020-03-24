@@ -4,8 +4,7 @@
 \alias{prob_lnorm}
 \title{Probability calculator for the log normal distribution}
 \usage{
-prob_lnorm(meanlog, sdlog, lb = NA, ub = NA, plb = NA, pub = NA,
-  dec = 3)
+prob_lnorm(meanlog, sdlog, lb = NA, ub = NA, plb = NA, pub = NA, dec = 3)
 }
 \arguments{
 \item{meanlog}{Mean of the distribution on the log scale}
@@ -31,4 +30,9 @@ See \url{https://radiant-rstats.github.io/docs/basics/prob_calc.html} for an exa
 \examples{
 prob_lnorm(meanlog = 0, sdlog = 1, lb = 0, ub = 1)
 
+}
+\seealso{
+\code{\link{summary.prob_lnorm}} to summarize results
+
+\code{\link{plot.prob_lnorm}} to plot results
 }
