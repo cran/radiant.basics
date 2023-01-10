@@ -147,16 +147,12 @@ cp_plot <- reactive({
 
 cp_plot_width <- function() {
   cp_plot() %>%
-    {
-      if (is.list(.)) .$plot_width else 650
-    }
+    (function(x) if (is.list(x)) x$plot_width else 650)
 }
 
 cp_plot_height <- function() {
   cp_plot() %>%
-    {
-      if (is.list(.)) .$plot_height else 400
-    }
+    (function(x) if (is.list(x)) x$plot_height else 400)
 }
 
 # output is called from the main radiant ui.R
@@ -220,7 +216,7 @@ cp_available <- reactive({
 })
 
 compare_props_report <- function() {
-  if (radiant.data::is_empty(input$cp_var1) || radiant.data::is_empty(input$cp_var2)) {
+  if (is.empty(input$cp_var1) || is.empty(input$cp_var2)) {
     return(invisible())
   }
   figs <- FALSE

@@ -144,23 +144,17 @@ observeEvent(input$cor_hcor, {
 
 cor_plot <- reactive({
   max(2, length(input$cor_vars)) %>%
-    {
-      list(plot_width = 400 + 75 * ., plot_height = 400 + 75 * .)
-    }
+    (function(x) list(plot_width = 400 + 75 * x, plot_height = 400 + 75 * x))
 })
 
 cor_plot_width <- function() {
   cor_plot() %>%
-    {
-      if (is.list(.)) .$plot_width else 650
-    }
+    (function(x) if (is.list(x)) x$plot_width else 650)
 }
 
 cor_plot_height <- function() {
   cor_plot() %>%
-    {
-      if (is.list(.)) .$plot_height else 650
-    }
+    (function(x) if (is.list(x)) x$plot_height else 650)
 }
 
 ## output is called from the main radiant ui.R
@@ -245,11 +239,11 @@ correlation_report <- function() {
     return(invisible())
   }
   inp_out <- list("", "")
-  nrobs <- ifelse(radiant.data::is_empty(input$cor_nrobs), 1000, as_integer(input$cor_nrobs))
+  nrobs <- ifelse(is.empty(input$cor_nrobs), 1000, as_integer(input$cor_nrobs))
   inp_out[[1]] <- clean_args(cor_sum_inputs(), cor_sum_args[-1])
   inp_out[[2]] <- list(nrobs = nrobs)
 
-  if (!radiant.data::is_empty(input$cor_name)) {
+  if (!is.empty(input$cor_name)) {
     dataset <- fix_names(input$cor_name)
     if (input$cor_name != dataset) {
       updateTextInput(session, inputId = "cor_name", value = dataset)

@@ -159,16 +159,12 @@ cm_plot <- reactive({
 
 cm_plot_width <- function() {
   cm_plot() %>%
-    {
-      if (is.list(.)) .$plot_width else 650
-    }
+    (function(x) if (is.list(x)) x$plot_width else 650)
 }
 
 cm_plot_height <- function() {
   cm_plot() %>%
-    {
-      if (is.list(.)) .$plot_height else 400
-    }
+    (function(x) if (is.list(x)) x$plot_height else 400)
 }
 
 # output is called from the main radiant ui.R
@@ -234,7 +230,7 @@ cm_available <- reactive({
 })
 
 compare_means_report <- function() {
-  if (radiant.data::is_empty(input$cm_var1) || radiant.data::is_empty(input$cm_var2)) {
+  if (is.empty(input$cm_var1) || is.empty(input$cm_var2)) {
     return(invisible())
   }
   figs <- FALSE
