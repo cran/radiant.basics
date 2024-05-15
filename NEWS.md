@@ -1,3 +1,13 @@
+# radiant.basics 1.6.6.0
+
+* Require Shiny 1.8.1. Adjustments related to icon-buttons were made to address a breaking change in Shiny 1.8.1
+* Reverting changes that removed `req(input$dataset)` in different places
+
+# radiant.basics 1.6.1.0
+
+* Require shiny 1.8.0. This fixes a bug in the shiny 1.7 versions that caused issues with all radiant packages.
+* Added `.groups` arguments as needed to avoid messages about grouping from dplyr
+
 # radiant.basics 1.6.0.0
 
 * Relabeled web app to "Radiant for R" to distinguish from "Radiant for Python"
